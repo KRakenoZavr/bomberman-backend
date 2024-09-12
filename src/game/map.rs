@@ -1,6 +1,6 @@
 use crate::game::{movement::Coord, power::PowerUp};
 
-use super::{key_handler::Key, player::Player};
+use super::player::Player;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
