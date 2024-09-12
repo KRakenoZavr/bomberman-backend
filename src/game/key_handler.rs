@@ -50,15 +50,18 @@ use Key::*;
 
 #[allow(dead_code)]
 impl KeyHandler {
-    pub fn new() -> Self {
+    fn default_map() -> Self {
         let mut hm: HashMap<Key, bool> = HashMap::new();
         hm.insert(Left, false);
         hm.insert(Right, false);
         hm.insert(Up, false);
         hm.insert(Down, false);
         hm.insert(Space, false);
+        hm
+    }
 
-        KeyHandler(hm)
+    pub fn new() -> Self {
+        KeyHandler::default_map()
     }
 
     fn key_down(&mut self, key: Key) {
