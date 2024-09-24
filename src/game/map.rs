@@ -1,6 +1,6 @@
 use crate::game::{movement::Coord, power::PowerUp};
 
-use super::player::Player;
+use super::{key_handler::Key, movement::Movement, player::Player};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,7 +20,7 @@ pub enum MapItem {
     PowerUp(PowerUp),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Map(pub Vec<Vec<MapItem>>);
 
 pub const DEFAULT_POWER_TIME: u8 = 20;
@@ -50,18 +50,44 @@ impl Map {
         self.0.first().unwrap().len()
     }
 
-    pub fn change_player_pos(&mut self, player: &Player, coord: Coord) {
-        let new_point = self.at_mut(coord.x, coord.y).unwrap();
+    pub fn change_player_pos(&mut self, player: &mut Player, cmd: Key) {
+        //let new_point = self.at_mut(coord.x, coord.y).unwrap();
+        //let old_pos = self.at_mut(player.coord.x, player.coord.y).unwrap();
 
-        let new_point = self.at_mut(player.coord.x, player.coord.y).unwrap();
+        let old_pos = Coord {
+            x: player.coord.x,
+            y: player.coord.y,
+        };
+
+        self.remove_item(old_pos);
+
+        match cmd {
+            Key::Up => player.up(),
+            Key::Down => player.down(),
+            Key::Left => player.left(),
+            Key::Right => player.right(),
+
+            _ => (),
+        }
+
+        *self.at_mut_point(player.coord).unwrap() = MapItem::Player(player.id);
         //match player.last_action {
         //Key::Up =>
         //}
         // * new_point = MapItem::Player(player_id);
     }
 
+    pub fn at_point(&self, c: Coord) -> Option<&MapItem> {
+        self.at(c.x, c.y)
+        //self.0.get(c.x as usize)?.get(c.y as usize)
+    }
+
     pub fn at(&self, x: u8, y: u8) -> Option<&MapItem> {
         self.0.get(x as usize)?.get(y as usize)
+    }
+
+    pub fn at_mut_point(&mut self, c: Coord) -> Option<&mut MapItem> {
+        self.at_mut(c.x, c.y)
     }
 
     pub fn at_mut(&mut self, x: u8, y: u8) -> Option<&mut MapItem> {
@@ -70,6 +96,10 @@ impl Map {
         }
 
         None
+    }
+
+    pub fn set_item(&mut self, coord: Coord, item: MapItem) {
+        *self.at_mut_point(coord).unwrap() = item
     }
 
     // TODO
@@ -96,6 +126,7 @@ impl Map {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -116,5 +147,37 @@ mod tests {
         let m2 = Map::new(v2);
 
         assert_eq!(m.eq(&m2), true)
+    }
+
+    #[test]
+    fn change_player_pos_right() {
+        let v = vec![vec![0, 0, 0, 0, 0]];
+        let mut m = Map::from_arr(v);
+
+        let (id, lives, speed, bombs_count, coord) = (1, 3, 1, 0, Coord { x: 0, y: 0 });
+        let mut p = Player::new(id, lives, speed, bombs_count, coord);
+
+        m.set_item(p.coord, MapItem::Player(p.id));
+
+        m.change_player_pos(&mut p, Key::Right);
+
+        assert_eq!(*m.at(0, 0).unwrap(), MapItem::Empty);
+        assert_eq!(*m.at(0, 1).unwrap(), MapItem::Player(p.id));
+    }
+
+    #[test]
+    fn change_player_pos_up() {
+        let v = vec![vec![0, 0, 0, 0, 0], vec![0, 0]];
+        let mut m = Map::from_arr(v);
+
+        let (id, lives, speed, bombs_count, coord) = (1, 3, 1, 0, Coord { x: 0, y: 1 });
+        let mut p = Player::new(id, lives, speed, bombs_count, coord);
+
+        m.set_item(p.coord, MapItem::Player(p.id));
+
+        m.change_player_pos(&mut p, Key::Up);
+
+        assert_eq!(*m.at(0, 1).unwrap(), MapItem::Empty);
+        assert_eq!(*m.at(0, 0).unwrap(), MapItem::Player(p.id));
     }
 }

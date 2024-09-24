@@ -9,10 +9,12 @@ use crate::game::{
     player::Player,
 };
 
+use super::key_handler::{self, Key};
+
 pub struct Engine {
     pub players: Arc<Mutex<HashMap<u8, Player>>>,
     pub map: Arc<Mutex<Map>>,
-    pub key_handler: KeyHandler,
+    pub key_handlers: Arc<Mutex<HashMap<u8, KeyHandler>>>,
 }
 
 #[allow(dead_code)]
@@ -21,13 +23,18 @@ impl Engine {
         Self {
             players: Arc::new(Mutex::new(HashMap::new())),
             map: Arc::new(Mutex::new(Map(vec![]))),
-            key_handler: KeyHandler::new(),
+            key_handlers: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
     pub fn add_player(&mut self, player: Player) {
         let mut players = self.players.lock();
-        players.insert(player.id, player);
+        let id = player.id.clone();
+        players.insert(id, player);
+
+        let kh = KeyHandler::new();
+        let mut khs = self.key_handlers.lock();
+        khs.insert(id, kh);
     }
 
     pub fn set_map(&mut self, map: Map) {
@@ -35,14 +42,50 @@ impl Engine {
     }
 }
 
+// for API call
+impl Engine {
+    // MAP
+    pub fn get_map(&self) -> Map {
+        self.map.lock().clone()
+    }
+
+    //pub fn map_change_event(&mut self, )
+
+    // KeyboardEvents
+    pub fn handle_key(&mut self, player_id: u8, key: u8, event: &str) -> Option<()> {
+        let mut kh = self.key_handlers.lock();
+        let kh = kh.get_mut(&player_id).unwrap();
+        kh.handle_key(key, event);
+        Some(())
+    }
+}
+
 #[allow(dead_code)]
 impl Engine {
-    pub fn place_bomb(&self) {}
+    //pub fn place_bomb(&self) {}
 
     // TODO
     // use debounce
-    pub fn handle_key(&mut self, key: u8, event: &str) {
-        self.key_handler.handle_key(key, event);
+    //pub fn handle_key(&mut self, key: u8, event: &str) {
+    //self.key_handler.handle_key(key, event);
+    //}
+}
+
+// impl Engine loop check key handler
+impl Engine {
+    pub fn key_handler_loop(&mut self) {
+        loop {
+            //let khs = self.key_handlers.lock();
+            //for key in khs.keys() {
+            //let kh =
+            //}
+            //for key in .keys() {
+            //if
+            //}
+            //if self.key_handler.is_key(Key::Up) {
+            //self.move_up(id)
+            //}
+        }
     }
 }
 
