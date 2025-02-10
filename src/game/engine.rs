@@ -3,13 +3,11 @@ use std::{collections::HashMap, sync::Arc};
 use parking_lot::Mutex;
 
 use crate::game::{
-    key_handler::KeyHandler,
+    key_handler::{self, Key, KeyHandler},
     map::{Map, MapItem},
     movement::Movement,
     player::Player,
 };
-
-use super::key_handler::{self, Key};
 
 pub struct Engine {
     pub players: Arc<Mutex<HashMap<u8, Player>>>,
@@ -29,11 +27,11 @@ impl Engine {
 
     pub fn add_player(&mut self, player: Player) {
         let mut players = self.players.lock();
-        let id = player.id.clone();
+        let id = player.id;
         players.insert(id, player);
 
-        let kh = KeyHandler::new();
         let mut khs = self.key_handlers.lock();
+        let kh = KeyHandler::new();
         khs.insert(id, kh);
     }
 
@@ -95,17 +93,21 @@ impl Engine {
 #[allow(dead_code)]
 impl Engine {
     pub fn move_left(&mut self, id: u8) -> Option<()> {
-        let guard_player = self.players.lock();
-        let player = guard_player.get(&id)?;
+        let mut guard_player = self.players.lock();
+        let player = guard_player.get_mut(&id)?;
 
         //let x = player.coord.x.checked_sub(player.speed)?;
         //let y = player.coord.y;
 
         // TODO
         // ccheck_sub => move player till wall
-        if self.check_if_wall(player.coord.x.checked_sub(player.speed)?, player.coord.y) {
-            let mut players = self.players.lock();
-            players.get_mut(&id)?.left();
+        if self.check_if_wall(
+            player.coord.x.checked_sub(player.get_speed())?,
+            player.coord.y,
+        ) {
+            // let mut players = self.players.lock();
+            // players.get_mut(&id)?.left();
+            player.left();
             return Some(());
         }
 
@@ -115,7 +117,7 @@ impl Engine {
     pub fn move_right(&mut self, id: u8) -> Option<()> {
         let guard_player = self.players.lock();
         let player = guard_player.get(&id)?;
-        if self.check_if_wall(player.coord.x + player.speed, player.coord.y) {
+        if self.check_if_wall(player.coord.x + player.get_speed(), player.coord.y) {
             let mut players = self.players.lock();
             players.get_mut(&id)?.left();
             return Some(());
@@ -127,7 +129,10 @@ impl Engine {
     pub fn move_up(&mut self, id: u8) -> Option<()> {
         let guard_player = self.players.lock();
         let player = guard_player.get(&id)?;
-        if self.check_if_wall(player.coord.x, player.coord.y.checked_sub(player.speed)?) {
+        if self.check_if_wall(
+            player.coord.x,
+            player.coord.y.checked_sub(player.get_speed())?,
+        ) {
             let mut players = self.players.lock();
             players.get_mut(&id)?.left();
             return Some(());
@@ -139,7 +144,7 @@ impl Engine {
     pub fn move_down(&mut self, id: u8) -> Option<()> {
         let guard_player = self.players.lock();
         let player = guard_player.get(&id)?;
-        if self.check_if_wall(player.coord.x, player.coord.y + player.speed) {
+        if self.check_if_wall(player.coord.x, player.coord.y + player.get_speed()) {
             let mut players = self.players.lock();
             players.get_mut(&id)?.left();
             return Some(());
@@ -148,7 +153,7 @@ impl Engine {
         None
     }
 
-    fn check_if_wall(&self, x: u8, y: u8) -> bool {
+    fn check_if_wall(&self, x: u16, y: u16) -> bool {
         match self.map.lock().at(x, y) {
             Some(item) => match item {
                 MapItem::WallTwo => false,
@@ -163,7 +168,7 @@ impl Engine {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::game::movement::Coord;
+    use crate::game::map::Point;
 
     #[test]
     fn player_movement_end_of_map() {
@@ -174,7 +179,7 @@ mod test {
         engine.set_map(map);
 
         let player_id = 0_u8;
-        let player = Player::new(player_id, 1, 1, 1, Coord { x: 0, y: 0 });
+        let player = Player::new(player_id, 1, 1, 1, Point { x: 0, y: 0 });
 
         engine.add_player(player);
         assert_eq!(engine.move_left(player_id), None);
@@ -189,7 +194,7 @@ mod test {
         engine.set_map(map);
 
         let player_id = 0_u8;
-        let player = Player::new(player_id, 1, 1, 1, Coord { x: 5, y: 5 });
+        let player = Player::new(player_id, 1, 1, 1, Point { x: 5, y: 5 });
 
         engine.add_player(player);
         assert_eq!(engine.move_left(player_id), Some(()));
@@ -200,7 +205,7 @@ mod test {
                 .get(&player_id)
                 .unwrap()
                 .coord
-                .eq(&Coord { x: 4, y: 5 }),
+                .eq(&Point { x: 4, y: 5 }),
             true
         );
     }
@@ -213,7 +218,7 @@ mod test {
         engine.set_map(map);
 
         let player_id = 0_u8;
-        let player = Player::new(player_id, 1, 2, 1, Coord { x: 1, y: 1 });
+        let player = Player::new(player_id, 1, 2, 1, Point { x: 1, y: 1 });
 
         engine.add_player(player);
         assert_eq!(engine.move_left(player_id), None)

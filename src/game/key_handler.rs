@@ -25,6 +25,7 @@ impl TryFrom<u8> for Key {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(clippy::enum_variant_names)]
 pub enum Event {
     KeyUp,
     KeyDown,
@@ -76,6 +77,7 @@ impl KeyHandler {
         self.0.insert(key, true);
     }
 
+    // TODO handle error
     pub fn handle_key(&mut self, key: u8, event: &str) {
         let key = Key::try_from(key).unwrap();
         let event = Event::try_from(event).unwrap();
@@ -101,6 +103,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn init() {
+        let kh = KeyHandler::new();
+
+        assert!(!kh.is_key(Key::Left));
+        assert!(!kh.is_key(Key::Left));
+        assert!(!kh.is_key(Key::Right));
+        assert!(!kh.is_key(Key::Up));
+        assert!(!kh.is_key(Key::Down));
+        assert!(!kh.is_key(Key::Space));
+    }
+
+    #[test]
     fn key_event_handler() {
         let mut kh = KeyHandler::new();
 
@@ -115,13 +129,13 @@ mod tests {
             kh.handle_key(key, event)
         }
 
-        assert_eq!(true, kh.is_key(Key::Up));
-        assert_eq!(true, kh.is_key(Key::Left));
-        assert_eq!(true, kh.is_key(Key::Space));
-        assert_eq!(true, kh.is_space());
+        assert!(kh.is_key(Key::Up));
+        assert!(kh.is_key(Key::Left));
+        assert!(kh.is_key(Key::Space));
+        assert!(kh.is_space());
 
         kh.handle_key(32, "key_up");
 
-        assert_eq!(false, kh.is_key(Key::Space));
+        assert!(!kh.is_key(Key::Space));
     }
 }
